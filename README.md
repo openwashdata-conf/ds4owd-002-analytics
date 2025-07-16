@@ -49,23 +49,19 @@ source("main.R")
 
 ### 2. Configure Credentials
 
-Edit `config/config.yml` with your API credentials:
+Set up secure credentials using keyring:
 
-```yaml
-default:
-  enketo:
-    username: "your_username"
-    password: "your_password"
-  posit_cloud:
-    api_key: "your_api_key"
-  zoom:
-    api_key: "your_api_key"
-  github:
-    token: "your_token"
-  database:
-    host: "localhost"
-    user: "your_db_user"
-    password: "your_db_password"
+```r
+# Setup all credentials securely
+source("scripts/setup_credentials.R")
+setup_course_analytics_credentials()
+
+# This will prompt you to enter:
+# - Enketo/Kobo Toolbox: username, password, base_url, form IDs
+# - Posit Cloud: api_key, base_url, workspace_id  
+# - Zoom: api_key, api_secret, base_url, account_id
+# - GitHub: token, base_url, organization
+# - Database: host, port, dbname, user, password
 ```
 
 ### 3. Setup Database
@@ -111,6 +107,7 @@ Data is stored in PostgreSQL with tables:
 
 ## Features
 
+- **Secure credentials**: Uses keyring for secure credential storage
 - **Tidyverse-based**: All data processing uses dplyr, purrr, etc.
 - **Error handling**: Comprehensive error catching and logging
 - **API pagination**: Handles paginated API responses
@@ -139,6 +136,7 @@ results$collection$data$github_commits_df
 - PostgreSQL database
 - API access to all services
 - Network connectivity for API calls
+- Keyring system access for credential storage
 
 ## License
 

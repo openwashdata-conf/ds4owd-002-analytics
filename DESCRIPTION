@@ -28,7 +28,9 @@ Imports:
     stringr,
     tidyr,
     glue,
-    base64enc
+    base64enc,
+    keyring,
+    getPass
 Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

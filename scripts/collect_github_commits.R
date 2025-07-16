@@ -1,30 +1,35 @@
 source("scripts/utils.R")
+source("scripts/setup_credentials.R")
 
 library(httr2)
 library(dplyr)
 library(purrr)
 library(lubridate)
 library(jsonlite)
-library(config)
-
-# Load configuration
-config <- config::get()
+library(keyring)
 
 # Collect GitHub commits data from course organization
 collect_github_commits_data <- function() {
   cli_alert_info("Starting GitHub commits data collection...")
   
+  # Get credentials from keyring
+  base_url <- get_credential("github", "base_url")
+  organization <- get_credential("github", "organization")
+  token <- get_credential("github", "token")
+  
+  # Check if all credentials are available
+  if (is.null(base_url) || is.null(organization) || is.null(token)) {
+    cli_alert_danger("GitHub credentials not found in keyring")
+    cli_alert_info("Run setup_course_analytics_credentials() to set them up")
+    return(tibble())
+  }
+  
   # First, get list of repositories in the organization
-  repos_url <- paste0(
-    config$github$base_url,
-    "/orgs/", 
-    config$github$organization,
-    "/repos"
-  )
+  repos_url <- paste0(base_url, "/orgs/", organization, "/repos")
   
   # Authentication headers
   headers <- list(
-    Authorization = paste0("Bearer ", config$github$token),
+    Authorization = paste0("Bearer ", token),
     "Accept" = "application/vnd.github.v3+json",
     "X-GitHub-Api-Version" = "2022-11-28"
   )
@@ -68,12 +73,7 @@ collect_github_commits_data <- function() {
     map_dfr(~ {
       repo_name <- .x
       
-      commits_url <- paste0(
-        config$github$base_url,
-        "/repos/", 
-        config$github$organization, "/", repo_name,
-        "/commits"
-      )
+      commits_url <- paste0(base_url, "/repos/", organization, "/", repo_name, "/commits")
       
       cli_progress_step("Fetching commits for repository {repo_name}")
       
@@ -146,12 +146,7 @@ collect_github_commits_data <- function() {
       ),
       # Get additional stats for each commit (requires separate API call)
       commit_stats = map(commit_sha, ~ {
-        stats_url <- paste0(
-          config$github$base_url,
-          "/repos/", 
-          config$github$organization, "/", repository_name[1],
-          "/commits/", .x
-        )
+        stats_url <- paste0(base_url, "/repos/", organization, "/", repository_name[1], "/commits/", .x)
         
         stats_data <- safe_api_request(stats_url, headers = headers)
         

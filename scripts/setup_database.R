@@ -1,20 +1,34 @@
 library(DBI)
 library(RPostgres)
 library(dplyr)
-library(config)
+library(keyring)
 
-# Load configuration
-config <- config::get()
+# Source credentials setup
+source("scripts/setup_credentials.R")
 
-# Database connection function
+# Database connection function using keyring
 connect_to_db <- function() {
+  # Get credentials from keyring
+  host <- get_credential("database", "host")
+  port <- as.integer(get_credential("database", "port"))
+  dbname <- get_credential("database", "dbname")
+  user <- get_credential("database", "user")
+  password <- get_credential("database", "password")
+  
+  # Check if all credentials are available
+  if (is.null(host) || is.null(port) || is.null(dbname) || is.null(user) || is.null(password)) {
+    cli_alert_danger("Database credentials not found in keyring")
+    cli_alert_info("Run setup_course_analytics_credentials() to set them up")
+    return(NULL)
+  }
+  
   DBI::dbConnect(
     RPostgres::Postgres(),
-    host = config$database$host,
-    port = config$database$port,
-    dbname = config$database$dbname,
-    user = config$database$user,
-    password = config$database$password
+    host = host,
+    port = port,
+    dbname = dbname,
+    user = user,
+    password = password
   )
 }
 

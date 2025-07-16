@@ -1,28 +1,34 @@
 source("scripts/utils.R")
+source("scripts/setup_credentials.R")
 
 library(httr2)
 library(dplyr)
 library(purrr)
 library(lubridate)
 library(jsonlite)
-library(config)
-
-# Load configuration
-config <- config::get()
+library(keyring)
 
 # Collect Zoom live sessions data
 collect_zoom_sessions_data <- function() {
   cli_alert_info("Starting Zoom live sessions data collection...")
   
+  # Get credentials from keyring
+  base_url <- get_credential("zoom", "base_url")
+  api_key <- get_credential("zoom", "api_key")
+  
+  # Check if all credentials are available
+  if (is.null(base_url) || is.null(api_key)) {
+    cli_alert_danger("Zoom credentials not found in keyring")
+    cli_alert_info("Run setup_course_analytics_credentials() to set them up")
+    return(tibble())
+  }
+  
   # First, get list of meetings
-  meetings_url <- paste0(
-    config$zoom$base_url,
-    "/users/me/meetings"
-  )
+  meetings_url <- paste0(base_url, "/users/me/meetings")
   
   # Authentication headers (using JWT or OAuth)
   headers <- list(
-    Authorization = paste0("Bearer ", config$zoom$api_key),
+    Authorization = paste0("Bearer ", api_key),
     "Content-Type" = "application/json"
   )
   
@@ -66,10 +72,7 @@ collect_zoom_sessions_data <- function() {
       meeting_id <- .x
       
       # Get participants for this meeting
-      participants_url <- paste0(
-        config$zoom$base_url,
-        "/report/meetings/", meeting_id, "/participants"
-      )
+      participants_url <- paste0(base_url, "/report/meetings/", meeting_id, "/participants")
       
       cli_progress_step("Fetching participants for meeting {meeting_id}")
       

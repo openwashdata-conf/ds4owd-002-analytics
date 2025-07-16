@@ -1,31 +1,38 @@
 source("scripts/utils.R")
+source("scripts/setup_credentials.R")
 
 library(httr2)
 library(dplyr)
 library(purrr)
 library(lubridate)
 library(jsonlite)
-library(config)
-
-# Load configuration
-config <- config::get()
+library(keyring)
 
 # Collect pre-course survey data from Enketo/Kobo Toolbox
 collect_pre_survey_data <- function() {
   cli_alert_info("Starting pre-course survey data collection...")
   
+  # Get credentials from keyring
+  base_url <- get_credential("enketo", "base_url")
+  form_id <- get_credential("enketo", "pre_survey_form_id")
+  username <- get_credential("enketo", "username")
+  password <- get_credential("enketo", "password")
+  
+  # Check if all credentials are available
+  if (is.null(base_url) || is.null(form_id) || is.null(username) || is.null(password)) {
+    cli_alert_danger("Enketo credentials not found in keyring")
+    cli_alert_info("Run setup_course_analytics_credentials() to set them up")
+    return(tibble())
+  }
+  
   # API endpoint for submissions
-  submissions_url <- paste0(
-    config$enketo$base_url,
-    "/data/", 
-    config$enketo$pre_survey_form_id
-  )
+  submissions_url <- paste0(base_url, "/data/", form_id)
   
   # Authentication headers
   headers <- list(
     Authorization = paste0("Basic ", 
                           base64enc::base64encode(
-                            charToRaw(paste0(config$enketo$username, ":", config$enketo$password))
+                            charToRaw(paste0(username, ":", password))
                           ))
   )
   

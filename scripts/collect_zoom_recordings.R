@@ -1,28 +1,34 @@
 source("scripts/utils.R")
+source("scripts/setup_credentials.R")
 
 library(httr2)
 library(dplyr)
 library(purrr)
 library(lubridate)
 library(jsonlite)
-library(config)
-
-# Load configuration
-config <- config::get()
+library(keyring)
 
 # Collect Zoom recordings data
 collect_zoom_recordings_data <- function() {
   cli_alert_info("Starting Zoom recordings data collection...")
   
+  # Get credentials from keyring
+  base_url <- get_credential("zoom", "base_url")
+  api_key <- get_credential("zoom", "api_key")
+  
+  # Check if all credentials are available
+  if (is.null(base_url) || is.null(api_key)) {
+    cli_alert_danger("Zoom credentials not found in keyring")
+    cli_alert_info("Run setup_course_analytics_credentials() to set them up")
+    return(tibble())
+  }
+  
   # First, get list of recordings
-  recordings_url <- paste0(
-    config$zoom$base_url,
-    "/users/me/recordings"
-  )
+  recordings_url <- paste0(base_url, "/users/me/recordings")
   
   # Authentication headers
   headers <- list(
-    Authorization = paste0("Bearer ", config$zoom$api_key),
+    Authorization = paste0("Bearer ", api_key),
     "Content-Type" = "application/json"
   )
   
@@ -126,13 +132,13 @@ collect_zoom_recording_views <- function(recording_id) {
   # This would be the actual implementation for getting viewing statistics
   # from Zoom's dashboard API or webhook data
   
-  dashboard_url <- paste0(
-    config$zoom$base_url,
-    "/metrics/recordings/", recording_id, "/views"
-  )
+  base_url <- get_credential("zoom", "base_url")
+  api_key <- get_credential("zoom", "api_key")
+  
+  dashboard_url <- paste0(base_url, "/metrics/recordings/", recording_id, "/views")
   
   headers <- list(
-    Authorization = paste0("Bearer ", config$zoom$api_key),
+    Authorization = paste0("Bearer ", api_key),
     "Content-Type" = "application/json"
   )
   

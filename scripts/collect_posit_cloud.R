@@ -1,30 +1,35 @@
 source("scripts/utils.R")
+source("scripts/setup_credentials.R")
 
 library(httr2)
 library(dplyr)
 library(purrr)
 library(lubridate)
 library(jsonlite)
-library(config)
-
-# Load configuration
-config <- config::get()
+library(keyring)
 
 # Collect Posit Cloud usage data
 collect_posit_cloud_data <- function() {
   cli_alert_info("Starting Posit Cloud usage data collection...")
   
+  # Get credentials from keyring
+  base_url <- get_credential("posit_cloud", "base_url")
+  workspace_id <- get_credential("posit_cloud", "workspace_id")
+  api_key <- get_credential("posit_cloud", "api_key")
+  
+  # Check if all credentials are available
+  if (is.null(base_url) || is.null(workspace_id) || is.null(api_key)) {
+    cli_alert_danger("Posit Cloud credentials not found in keyring")
+    cli_alert_info("Run setup_course_analytics_credentials() to set them up")
+    return(tibble())
+  }
+  
   # API endpoint for workspace usage
-  usage_url <- paste0(
-    config$posit_cloud$base_url,
-    "/workspaces/", 
-    config$posit_cloud$workspace_id,
-    "/usage"
-  )
+  usage_url <- paste0(base_url, "/workspaces/", workspace_id, "/usage")
   
   # Authentication headers
   headers <- list(
-    Authorization = paste0("Bearer ", config$posit_cloud$api_key),
+    Authorization = paste0("Bearer ", api_key),
     "Content-Type" = "application/json"
   )
   

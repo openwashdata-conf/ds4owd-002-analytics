@@ -8,10 +8,7 @@ library(purrr)
 library(dbplyr)
 library(lubridate)
 library(cli)
-library(config)
-
-# Load configuration
-config <- config::get()
+library(keyring)
 
 # Database table mapping
 table_mapping <- list(
