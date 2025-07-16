@@ -1,0 +1,32 @@
+Package: ds4owd-002-analytics
+Type: Package
+Title: Data Science Course Analytics Collection
+Version: 0.1.0
+Author: Analytics Team
+Maintainer: Analytics Team <analytics@example.com>
+Description: R scripts for collecting and storing data from various sources 
+    associated with an online data science course including surveys, 
+    cloud usage, video sessions, and code repositories.
+License: MIT
+Encoding: UTF-8
+LazyData: true
+Depends: 
+    R (>= 4.0.0)
+Imports:
+    dplyr,
+    httr2,
+    purrr,
+    readr,
+    lubridate,
+    rlang,
+    cli,
+    config,
+    DBI,
+    RPostgres,
+    dbplyr,
+    jsonlite,
+    stringr,
+    tidyr
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
