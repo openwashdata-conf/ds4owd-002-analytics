@@ -1,5 +1,7 @@
 # Course Analytics Data Collection Pipeline
 
+[![Data Collection](https://github.com/openwashdata-conf/ds4owd-002-analytics/actions/workflows/data-collection.yml/badge.svg)](https://github.com/openwashdata-conf/ds4owd-002-analytics/actions/workflows/data-collection.yml)
+
 A comprehensive R-based system for collecting and storing data from various sources associated with an online data science course.
 
 ## Overview
@@ -107,6 +109,7 @@ Data is stored in PostgreSQL with tables:
 
 ## Features
 
+- **Automated collection**: GitHub Actions for scheduled data collection
 - **Secure credentials**: Uses keyring for secure credential storage
 - **Modern R**: Uses native pipe (`|>`) for better performance
 - **Tidyverse-based**: All data processing uses dplyr, purrr, etc.
@@ -129,6 +132,29 @@ results <- run_analytics_pipeline(storage_method = "replace")
 # Access individual data frames
 results$collection$data$pre_course_survey_df
 results$collection$data$github_commits_df
+```
+
+## Automated Data Collection
+
+The project includes GitHub Actions for automated data collection:
+
+### Schedule
+- **Daily (2 AM UTC)**: Posit Cloud, GitHub commits, Zoom recordings
+- **Weekly (Fridays 3 AM UTC)**: Zoom sessions
+- **Manual**: Surveys (triggered when needed)
+
+### Setup
+1. Configure GitHub repository secrets (see [GitHub Actions Setup Guide](docs/github-actions-setup.md))
+2. Enable GitHub Actions in repository settings
+3. Monitor workflow runs in Actions tab
+
+### Manual Triggers
+```bash
+# In GitHub Actions UI, select collection type:
+# - daily: Posit Cloud, GitHub, Zoom recordings
+# - weekly: Zoom sessions  
+# - manual_surveys: Pre/post surveys
+# - full: All sources
 ```
 
 ## Requirements

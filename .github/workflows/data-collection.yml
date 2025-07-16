@@ -1,0 +1,175 @@
+name: Course Analytics Data Collection
+
+on:
+  schedule:
+    # Daily at 2 AM UTC for Posit Cloud, GitHub, and Zoom recordings
+    - cron: '0 2 * * *'
+    # Weekly on Fridays at 3 AM UTC for Zoom sessions
+    - cron: '0 3 * * 5'
+  workflow_dispatch:
+    inputs:
+      collection_type:
+        description: 'Type of data collection to run'
+        required: true
+        default: 'daily'
+        type: choice
+        options:
+          - daily
+          - weekly
+          - manual_surveys
+          - full
+
+env:
+  R_VERSION: '4.1.0'
+
+jobs:
+  collect-data:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_DB: course_analytics
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup R
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: ${{ env.R_VERSION }}
+        
+    - name: Setup R dependencies
+      uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        extra-packages: any::rcmdcheck
+        needs: check
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+        
+    - name: Install R packages
+      run: |
+        install.packages(c("remotes", "keyring"))
+        remotes::install_deps(dependencies = TRUE)
+      shell: Rscript {0}
+      
+    - name: Setup credentials in keyring
+      env:
+        ENKETO_USERNAME: ${{ secrets.ENKETO_USERNAME }}
+        ENKETO_PASSWORD: ${{ secrets.ENKETO_PASSWORD }}
+        ENKETO_BASE_URL: ${{ secrets.ENKETO_BASE_URL }}
+        ENKETO_PRE_SURVEY_FORM_ID: ${{ secrets.ENKETO_PRE_SURVEY_FORM_ID }}
+        ENKETO_POST_SURVEY_FORM_ID: ${{ secrets.ENKETO_POST_SURVEY_FORM_ID }}
+        POSIT_CLOUD_API_KEY: ${{ secrets.POSIT_CLOUD_API_KEY }}
+        POSIT_CLOUD_BASE_URL: ${{ secrets.POSIT_CLOUD_BASE_URL }}
+        POSIT_CLOUD_WORKSPACE_ID: ${{ secrets.POSIT_CLOUD_WORKSPACE_ID }}
+        ZOOM_API_KEY: ${{ secrets.ZOOM_API_KEY }}
+        ZOOM_API_SECRET: ${{ secrets.ZOOM_API_SECRET }}
+        ZOOM_BASE_URL: ${{ secrets.ZOOM_BASE_URL }}
+        ZOOM_ACCOUNT_ID: ${{ secrets.ZOOM_ACCOUNT_ID }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_BASE_URL: ${{ secrets.GITHUB_BASE_URL }}
+        GITHUB_ORGANIZATION: ${{ secrets.GITHUB_ORGANIZATION }}
+        DATABASE_HOST: localhost
+        DATABASE_PORT: "5432"
+        DATABASE_DBNAME: course_analytics
+        DATABASE_USER: postgres
+        DATABASE_PASSWORD: postgres
+      run: |
+        source("scripts/setup_credentials_ci.R")
+      shell: Rscript {0}
+      
+    - name: Setup database schema
+      run: |
+        source("scripts/setup_database.R")
+        setup_database_schema()
+        cat("Database schema created successfully\n")
+      shell: Rscript {0}
+      
+    - name: Determine collection sources
+      id: determine-sources
+      run: |
+        if [[ "${{ github.event_name }}" == "schedule" ]]; then
+          if [[ "${{ github.event.schedule }}" == "0 2 * * *" ]]; then
+            echo "sources=daily" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.schedule }}" == "0 3 * * 5" ]]; then
+            echo "sources=weekly" >> $GITHUB_OUTPUT
+          fi
+        elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          echo "sources=${{ github.event.inputs.collection_type }}" >> $GITHUB_OUTPUT
+        else
+          echo "sources=daily" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Run data collection
+      run: |
+        source("scripts/orchestrate_collection.R")
+        source("scripts/store_to_postgres.R")
+        
+        collection_type <- "${{ steps.determine-sources.outputs.sources }}"
+        
+        if (collection_type == "daily") {
+          # Daily collection: Posit Cloud, GitHub, Zoom recordings
+          sources <- c("posit_cloud", "github_commits", "zoom_recordings")
+          cat("Running daily collection for:", paste(sources, collapse = ", "), "\n")
+          
+        } else if (collection_type == "weekly") {
+          # Weekly collection: Zoom sessions
+          sources <- c("zoom_sessions")
+          cat("Running weekly collection for:", paste(sources, collapse = ", "), "\n")
+          
+        } else if (collection_type == "manual_surveys") {
+          # Manual survey collection
+          sources <- c("pre_survey", "post_survey")
+          cat("Running manual survey collection for:", paste(sources, collapse = ", "), "\n")
+          
+        } else if (collection_type == "full") {
+          # Full collection (all sources)
+          sources <- "all"
+          cat("Running full collection for all sources\n")
+          
+        } else {
+          stop("Unknown collection type: ", collection_type)
+        }
+        
+        # Run collection
+        results <- orchestrate_data_collection(sources = sources, save_files = TRUE)
+        
+        # Store to database
+        if (length(results$data) > 0) {
+          storage_results <- store_all_data_to_postgres(results$data, storage_method = "upsert")
+          cat("Data collection and storage completed successfully\n")
+        } else {
+          cat("No data collected\n")
+        }
+      shell: Rscript {0}
+      
+    - name: Upload data artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: collected-data-${{ github.run_number }}
+        path: |
+          data/*.csv
+          data/*_summary.csv
+        retention-days: 30
+        
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "Data collection failed. Check the logs for details."
+        # You can add Slack/email notification here if needed
