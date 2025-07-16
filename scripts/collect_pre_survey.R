@@ -48,7 +48,7 @@ collect_pre_survey_data <- function() {
   }
   
   # Process submissions into a data frame
-  pre_course_survey_df <- all_submissions %>%
+  pre_course_survey_df <- all_submissions |>
     map_dfr(~ {
       if (is.list(.x) && length(.x) > 0) {
         # Handle different response structures
@@ -60,7 +60,7 @@ collect_pre_survey_data <- function() {
       } else {
         list()
       }
-    }) %>%
+    }) |>
     # Standardize column names and structure
     mutate(
       participant_id = case_when(
@@ -86,9 +86,9 @@ collect_pre_survey_data <- function() {
         )))
         toJSON(response_cols, auto_unbox = TRUE)
       })
-    ) %>%
-    select(participant_id, submission_date, response_data) %>%
-    standardize_timestamps(c("submission_date")) %>%
+    ) |>
+    select(participant_id, submission_date, response_data) |>
+    standardize_timestamps(c("submission_date")) |>
     clean_dataframe(required_cols = c("participant_id", "submission_date", "response_data"))
   
   cli_alert_success("Collected {nrow(pre_course_survey_df)} pre-course survey responses")

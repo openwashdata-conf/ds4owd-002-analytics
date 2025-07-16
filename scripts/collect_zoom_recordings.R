@@ -55,16 +55,16 @@ collect_zoom_recordings_data <- function() {
   }
   
   # Extract recording IDs and meeting IDs
-  recording_info <- all_recordings %>%
+  recording_info <- all_recordings |>
     map_dfr(~ {
       if ("meetings" %in% names(.x)) {
-        .x$meetings %>%
+        .x$meetings |>
           map_dfr(~ {
             meeting_data <- .x
             if ("recording_files" %in% names(.x)) {
-              .x$recording_files %>%
+              .x$recording_files |>
                 map_dfr(~ {
-                  .x %>%
+                  .x |>
                     mutate(
                       meeting_id = meeting_data$id,
                       meeting_topic = meeting_data$topic,
@@ -87,7 +87,7 @@ collect_zoom_recordings_data <- function() {
   
   # For each recording, get viewing statistics (if available)
   # Note: This might require additional API calls depending on Zoom's dashboard API
-  zoom_recordings_df <- recording_info %>%
+  zoom_recordings_df <- recording_info |>
     # Get viewing data (this is a simplified approach - actual implementation may vary)
     mutate(
       recording_id = case_when(
@@ -107,19 +107,19 @@ collect_zoom_recordings_data <- function() {
           view_duration_minutes = sample(5:120, length(viewer_id), replace = TRUE)
         )
       })
-    ) %>%
-    select(recording_id, meeting_id, meeting_topic, meeting_start_time, viewer_data) %>%
-    unnest(viewer_data) %>%
+    ) |>
+    select(recording_id, meeting_id, meeting_topic, meeting_start_time, viewer_data) |>
+    unnest(viewer_data) |>
     # Standardize column names and structure
     mutate(
       recording_topic = as.character(meeting_topic),
       recording_date = as.Date(ymd_hms(meeting_start_time)),
       view_start_time = as.POSIXct(view_start_time, tz = "UTC"),
       view_duration_minutes = as.integer(view_duration_minutes)
-    ) %>%
+    ) |>
     select(recording_id, meeting_id, viewer_id, viewer_name, view_start_time, 
-           view_duration_minutes, recording_topic, recording_date) %>%
-    standardize_timestamps(c("view_start_time")) %>%
+           view_duration_minutes, recording_topic, recording_date) |>
+    standardize_timestamps(c("view_start_time")) |>
     clean_dataframe(required_cols = c("recording_id", "meeting_id", "viewer_id"))
   
   cli_alert_success("Collected {nrow(zoom_recordings_df)} Zoom recording view records")
@@ -151,7 +151,7 @@ collect_zoom_recording_views <- function(recording_id) {
   
   # Process views data
   if ("views" %in% names(views_data)) {
-    views_data$views %>%
+    views_data$views |>
       map_dfr(~ {
         tibble(
           viewer_id = .x$user_id %||% paste0("viewer_", runif(1, 1000, 9999)),

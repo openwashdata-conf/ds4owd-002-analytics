@@ -54,22 +54,22 @@ collect_github_commits_data <- function() {
   }
   
   # Extract repository names
-  repo_names <- all_repos %>%
+  repo_names <- all_repos |>
     map_dfr(~ {
       if (is.list(.x) && length(.x) > 0) {
         .x
       } else {
         list()
       }
-    }) %>%
+    }) |>
     pull(name)
   
   cli_alert_info("Found {length(repo_names)} repositories")
   
   # For each repository, get commits from the last 30 days
-  since_date <- (today() - days(30)) %>% format("%Y-%m-%dT%H:%M:%SZ")
+  since_date <- (today() - days(30)) |> format("%Y-%m-%dT%H:%M:%SZ")
   
-  all_commits <- repo_names %>%
+  all_commits <- repo_names |>
     map_dfr(~ {
       repo_name <- .x
       
@@ -91,14 +91,14 @@ collect_github_commits_data <- function() {
       )
       
       if (length(repo_commits) > 0) {
-        repo_commits %>%
+        repo_commits |>
           map_dfr(~ {
             if (is.list(.x) && length(.x) > 0) {
               .x
             } else {
               list()
             }
-          }) %>%
+          }) |>
           mutate(repository_name = repo_name)
       } else {
         tibble()
@@ -111,7 +111,7 @@ collect_github_commits_data <- function() {
   }
   
   # Process commits data into standardized format
-  github_commits_df <- all_commits %>%
+  github_commits_df <- all_commits |>
     # Standardize column names and structure
     mutate(
       commit_sha = case_when(
@@ -160,16 +160,16 @@ collect_github_commits_data <- function() {
           list(additions = 0, deletions = 0, total = 0)
         }
       })
-    ) %>%
+    ) |>
     # Extract commit statistics
     mutate(
       additions = map_int(commit_stats, ~ .x$additions),
       deletions = map_int(commit_stats, ~ .x$deletions),
       changed_files = map_int(commit_stats, ~ .x$total)
-    ) %>%
+    ) |>
     select(commit_sha, repository_name, author_username, author_email, 
-           commit_message, commit_date, additions, deletions, changed_files) %>%
-    standardize_timestamps(c("commit_date")) %>%
+           commit_message, commit_date, additions, deletions, changed_files) |>
+    standardize_timestamps(c("commit_date")) |>
     clean_dataframe(required_cols = c("commit_sha", "repository_name", "author_username"))
   
   cli_alert_success("Collected {nrow(github_commits_df)} GitHub commits")

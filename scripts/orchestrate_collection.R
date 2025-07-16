@@ -96,7 +96,7 @@ orchestrate_data_collection <- function(sources = "all", save_files = TRUE) {
       end_time <- Sys.time()
       duration <- as.numeric(difftime(end_time, start_time, units = "secs"))
       
-      collection_summary <- collection_summary %>%
+      collection_summary <- collection_summary |>
         add_row(
           source = source_info$name,
           status = "success",
@@ -112,7 +112,7 @@ orchestrate_data_collection <- function(sources = "all", save_files = TRUE) {
       end_time <- Sys.time()
       duration <- as.numeric(difftime(end_time, start_time, units = "secs"))
       
-      collection_summary <<- collection_summary %>%
+      collection_summary <<- collection_summary |>
         add_row(
           source = source_info$name,
           status = "error",
@@ -131,8 +131,8 @@ orchestrate_data_collection <- function(sources = "all", save_files = TRUE) {
   # Summary report
   cli_h2("Collection Summary")
   
-  successful_collections <- collection_summary %>% filter(status == "success")
-  failed_collections <- collection_summary %>% filter(status == "error")
+  successful_collections <- collection_summary |> filter(status == "success")
+  failed_collections <- collection_summary |> filter(status == "error")
   
   cli_alert_info("Total sources attempted: {nrow(collection_summary)}")
   cli_alert_success("Successful collections: {nrow(successful_collections)}")
@@ -144,14 +144,14 @@ orchestrate_data_collection <- function(sources = "all", save_files = TRUE) {
   }
   
   # Print detailed summary
-  collection_summary %>%
+  collection_summary |>
     mutate(
       duration_formatted = paste0(round(duration_seconds, 2), "s"),
       records_formatted = ifelse(status == "success", 
                                  paste0(records_collected, " records"), 
                                  "Failed")
-    ) %>%
-    select(source, status, records_formatted, duration_formatted) %>%
+    ) |>
+    select(source, status, records_formatted, duration_formatted) |>
     print()
   
   # Save collection metadata

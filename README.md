@@ -108,6 +108,7 @@ Data is stored in PostgreSQL with tables:
 ## Features
 
 - **Secure credentials**: Uses keyring for secure credential storage
+- **Modern R**: Uses native pipe (`|>`) for better performance
 - **Tidyverse-based**: All data processing uses dplyr, purrr, etc.
 - **Error handling**: Comprehensive error catching and logging
 - **API pagination**: Handles paginated API responses
@@ -132,7 +133,7 @@ results$collection$data$github_commits_df
 
 ## Requirements
 
-- R >= 4.0.0
+- R >= 4.1.0 (for native pipe support)
 - PostgreSQL database
 - API access to all services
 - Network connectivity for API calls

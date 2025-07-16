@@ -163,7 +163,7 @@ store_all_data_to_postgres <- function(data_list, storage_method = "append") {
       duration <- as.numeric(difftime(end_time, start_time, units = "secs"))
       
       # Record result
-      storage_results <- storage_results %>%
+      storage_results <- storage_results |>
         add_row(
           data_frame = df_name,
           table_name = table_name,
@@ -189,8 +189,8 @@ store_all_data_to_postgres <- function(data_list, storage_method = "append") {
   # Summary report
   cli_h2("Storage Summary")
   
-  successful_stores <- storage_results %>% filter(status == "success")
-  failed_stores <- storage_results %>% filter(status == "error")
+  successful_stores <- storage_results |> filter(status == "success")
+  failed_stores <- storage_results |> filter(status == "error")
   
   cli_alert_info("Total tables attempted: {nrow(storage_results)}")
   cli_alert_success("Successful stores: {nrow(successful_stores)}")
@@ -202,14 +202,14 @@ store_all_data_to_postgres <- function(data_list, storage_method = "append") {
   }
   
   # Print detailed summary
-  storage_results %>%
+  storage_results |>
     mutate(
       duration_formatted = paste0(round(duration_seconds, 2), "s"),
       records_formatted = ifelse(status == "success", 
                                  paste0(records_stored, " records"), 
                                  status)
-    ) %>%
-    select(data_frame, table_name, status, records_formatted, duration_formatted) %>%
+    ) |>
+    select(data_frame, table_name, status, records_formatted, duration_formatted) |>
     print()
   
   # Save storage metadata

@@ -58,7 +58,7 @@ collect_posit_cloud_data <- function() {
   }
   
   # Process usage data into a data frame
-  posit_usage_df <- all_usage_data %>%
+  posit_usage_df <- all_usage_data |>
     map_dfr(~ {
       if (is.list(.x) && "sessions" %in% names(.x)) {
         .x$sessions
@@ -67,7 +67,7 @@ collect_posit_cloud_data <- function() {
       } else {
         list()
       }
-    }) %>%
+    }) |>
     # Standardize column names and structure
     mutate(
       user_id = case_when(
@@ -117,10 +117,10 @@ collect_posit_cloud_data <- function() {
         !is.null(avg_memory_usage) ~ as.numeric(avg_memory_usage),
         TRUE ~ as.numeric(NA)
       )
-    ) %>%
+    ) |>
     select(user_id, session_id, start_time, end_time, duration_minutes, 
-           project_name, cpu_usage, memory_usage) %>%
-    standardize_timestamps(c("start_time", "end_time")) %>%
+           project_name, cpu_usage, memory_usage) |>
+    standardize_timestamps(c("start_time", "end_time")) |>
     clean_dataframe(required_cols = c("user_id", "session_id", "start_time"))
   
   cli_alert_success("Collected {nrow(posit_usage_df)} Posit Cloud usage sessions")

@@ -23,7 +23,7 @@ safe_api_request <- function(url, headers = NULL, query = NULL, method = "GET") 
     if (method == "GET") {
       resp <- req_perform(req)
     } else {
-      resp <- req_method(req, method) %>% req_perform()
+      resp <- req_method(req, method) |> req_perform()
     }
     
     resp_body_json(resp)
@@ -36,7 +36,7 @@ safe_api_request <- function(url, headers = NULL, query = NULL, method = "GET") 
 # Safe API request with Basic Auth
 safe_api_request_with_auth <- function(url, username, password, query = NULL, method = "GET") {
   tryCatch({
-    req <- request(url) %>%
+    req <- request(url) |>
       req_auth_basic(username, password)
     
     if (!is.null(query)) {
@@ -46,7 +46,7 @@ safe_api_request_with_auth <- function(url, username, password, query = NULL, me
     if (method == "GET") {
       resp <- req_perform(req)
     } else {
-      resp <- req_method(req, method) %>% req_perform()
+      resp <- req_method(req, method) |> req_perform()
     }
     
     resp_body_json(resp)
@@ -58,7 +58,7 @@ safe_api_request_with_auth <- function(url, username, password, query = NULL, me
 
 # Standardize timestamp columns
 standardize_timestamps <- function(df, timestamp_cols) {
-  df %>%
+  df |>
     mutate(
       across(all_of(timestamp_cols), ~ as.POSIXct(.x, tz = "UTC"))
     )
@@ -73,9 +73,9 @@ clean_dataframe <- function(df, required_cols = NULL) {
     }
   }
   
-  df %>%
+  df |>
     # Remove completely empty rows
-    filter(if_all(everything(), ~ !is.na(.x) | .x != "")) %>%
+    filter(if_all(everything(), ~ !is.na(.x) | .x != "")) |>
     # Add collection timestamp
     mutate(collected_at = now("UTC"))
 }

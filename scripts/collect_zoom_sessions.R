@@ -56,18 +56,18 @@ collect_zoom_sessions_data <- function() {
   }
   
   # Extract meeting IDs
-  meeting_ids <- all_meetings %>%
+  meeting_ids <- all_meetings |>
     map_dfr(~ {
       if ("meetings" %in% names(.x)) {
         .x$meetings
       } else {
         .x
       }
-    }) %>%
+    }) |>
     pull(id)
   
   # Get participant data for each meeting
-  all_participants <- meeting_ids %>%
+  all_participants <- meeting_ids |>
     map_dfr(~ {
       meeting_id <- .x
       
@@ -86,14 +86,14 @@ collect_zoom_sessions_data <- function() {
       )
       
       if (length(participants_data) > 0) {
-        participants_data %>%
+        participants_data |>
           map_dfr(~ {
             if ("participants" %in% names(.x)) {
               .x$participants
             } else {
               .x
             }
-          }) %>%
+          }) |>
           mutate(meeting_id = meeting_id)
       } else {
         tibble()
@@ -106,7 +106,7 @@ collect_zoom_sessions_data <- function() {
   }
   
   # Process participant data into standardized format
-  zoom_live_sessions_df <- all_participants %>%
+  zoom_live_sessions_df <- all_participants |>
     # Standardize column names and structure
     mutate(
       meeting_id = as.character(meeting_id),
@@ -148,10 +148,10 @@ collect_zoom_sessions_data <- function() {
         !is.null(start_time) ~ as.Date(ymd_hms(start_time)),
         TRUE ~ as.Date(NA)
       )
-    ) %>%
+    ) |>
     select(meeting_id, participant_id, participant_name, join_time, leave_time, 
-           duration_minutes, meeting_topic, meeting_date) %>%
-    standardize_timestamps(c("join_time", "leave_time")) %>%
+           duration_minutes, meeting_topic, meeting_date) |>
+    standardize_timestamps(c("join_time", "leave_time")) |>
     clean_dataframe(required_cols = c("meeting_id", "participant_id"))
   
   cli_alert_success("Collected {nrow(zoom_live_sessions_df)} Zoom live session records")
