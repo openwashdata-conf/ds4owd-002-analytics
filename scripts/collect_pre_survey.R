@@ -28,18 +28,11 @@ collect_pre_survey_data <- function() {
   # API endpoint for submissions
   submissions_url <- paste0(base_url, "/data/", form_id)
   
-  # Authentication headers
-  headers <- list(
-    Authorization = paste0("Basic ", 
-                          base64enc::base64encode(
-                            charToRaw(paste0(username, ":", password))
-                          ))
-  )
-  
-  # Fetch submissions with pagination
-  all_submissions <- paginate_api_requests(
+  # Fetch submissions with pagination using httr2 Basic Auth
+  all_submissions <- paginate_api_requests_with_auth(
     base_url = submissions_url,
-    headers = headers,
+    username = username,
+    password = password,
     initial_params = list(
       format = "json",
       sort = '{"_submission_time": -1}'

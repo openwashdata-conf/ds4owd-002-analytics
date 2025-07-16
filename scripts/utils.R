@@ -33,6 +33,29 @@ safe_api_request <- function(url, headers = NULL, query = NULL, method = "GET") 
   })
 }
 
+# Safe API request with Basic Auth
+safe_api_request_with_auth <- function(url, username, password, query = NULL, method = "GET") {
+  tryCatch({
+    req <- request(url) %>%
+      req_auth_basic(username, password)
+    
+    if (!is.null(query)) {
+      req <- req_url_query(req, !!!query)
+    }
+    
+    if (method == "GET") {
+      resp <- req_perform(req)
+    } else {
+      resp <- req_method(req, method) %>% req_perform()
+    }
+    
+    resp_body_json(resp)
+  }, error = function(e) {
+    cli_alert_danger("API request failed: {e$message}")
+    return(NULL)
+  })
+}
+
 # Standardize timestamp columns
 standardize_timestamps <- function(df, timestamp_cols) {
   df %>%
@@ -72,6 +95,40 @@ paginate_api_requests <- function(base_url, headers, initial_params = list(),
                 setNames(list(page, per_page), c(page_param, per_page_param)))
     
     response <- safe_api_request(base_url, headers = headers, query = params)
+    
+    if (is.null(response) || length(response) == 0) {
+      break
+    }
+    
+    all_data <- append(all_data, list(response))
+    
+    # Check if we've reached the end
+    if (length(response) < per_page) {
+      break
+    }
+    
+    page <- page + 1
+  }
+  
+  cli_progress_done()
+  return(all_data)
+}
+
+# Pagination helper for APIs with Basic Auth
+paginate_api_requests_with_auth <- function(base_url, username, password, initial_params = list(), 
+                                            page_param = "page", per_page_param = "per_page", 
+                                            per_page = 100, max_pages = 50) {
+  
+  all_data <- list()
+  page <- 1
+  
+  while (page <= max_pages) {
+    cli_progress_step("Fetching page {page}")
+    
+    params <- c(initial_params, 
+                setNames(list(page, per_page), c(page_param, per_page_param)))
+    
+    response <- safe_api_request_with_auth(base_url, username, password, query = params)
     
     if (is.null(response) || length(response) == 0) {
       break
